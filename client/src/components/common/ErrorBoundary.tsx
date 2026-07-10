@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-[400px] flex items-center justify-center p-6">
           <div className="text-center max-w-md">
             <div className="w-16 h-16 bg-error-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <HiExclamationTriangle className="w-8 h-8 text-error" />
+              <HiExclamationCircle className="w-8 h-8 text-error" />
             </div>
             <h2 className="text-headline-sm mb-2">Something went wrong</h2>
             <p className="text-body-md text-on-surface-variant mb-6">
