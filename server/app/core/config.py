@@ -1,7 +1,5 @@
 """
 Application Configuration - CLOUD ONLY VERSION
-Uses Pydantic Settings for environment variable management
-No local AI - all processing via cloud APIs
 """
 from typing import List, Optional
 from pydantic_settings import BaseSettings
@@ -14,7 +12,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "MediVoice"
     APP_VERSION: str = "0.1.0"
-    DEBUG: bool = False
+    DEBUG: bool = True
     ENVIRONMENT: str = "development"
     API_PREFIX: str = "/api/v1"
     
@@ -25,19 +23,22 @@ class Settings(BaseSettings):
     RELOAD: bool = False
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "https://medivoice.vercel.app"]
+    CORS_ORIGINS: List[str] = ["*"]
     
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             import json
-            return json.loads(v)
+            try:
+                return json.loads(v)
+            except:
+                return ["*"]
         return v
     
-    # Database - Neon.tech (Cloud PostgreSQL)
-    DATABASE_URL: str = "postgresql://neondb_owner:npg_5ubdxUCYz6PE@ep-winter-art-atv1ymgx-pooler.c-9.us-east-1.aws.neon.tech/medivoice_db?sslmode=require&channel_binding=require"  # Default SQLite for dev
+    # Database - SQLite for dev, Neon.tech for production
+    DATABASE_URL: str = "sqlite+aiosqlite:///./medivoice.db"
     
-    # Redis - Upstash (Cloud Redis) - Optional for MVP
+    # Redis - Optional
     REDIS_URL: Optional[str] = None
     
     # JWT Authentication
@@ -50,22 +51,17 @@ class Settings(BaseSettings):
     SESSION_TIMEOUT_MINUTES: int = 10
     MAX_NOTES_PER_SESSION: int = 5
     
-    # ============================================
-    # AI/ML Configuration - CLOUD ONLY
-    # ============================================
-    
-    # Primary: Groq Cloud (FREE TIER - Recommended)
-    # Sign up at https://console.groq.com for free API key
+    # AI/ML - Groq Cloud (FREE TIER)
     GROQ_API_KEY: Optional[str] = None
-    GROQ_STT_MODEL: str = "whisper-large-v3"  # Speech-to-Text
-    GROQ_LLM_MODEL: str = "llama-3.1-70b-versatile"  # Note Formatting
+    GROQ_STT_MODEL: str = "whisper-large-v3"
+    GROQ_LLM_MODEL: str = "llama-3.1-70b-versatile"
     
-    # Secondary: OpenAI (PAID - Optional fallback)
+    # OpenAI (PAID - Optional)
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_STT_MODEL: str = "whisper-1"
     OPENAI_LLM_MODEL: str = "gpt-3.5-turbo"
     
-    # Active AI Provider: "groq" or "openai"
+    # Active AI Provider
     AI_PROVIDER: str = "groq"
     
     # Feature Flags
