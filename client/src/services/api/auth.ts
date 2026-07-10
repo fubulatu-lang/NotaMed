@@ -10,7 +10,7 @@ class AuthService {
     return apiClient.post<User>('/auth/register', data);
   }
 
-  async getCurrentUser(token: string): Promise<User> {
+  async getCurrentUser(_token: string): Promise<User> {
     return apiClient.get<User>('/auth/me');
   }
 
