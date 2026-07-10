@@ -1,7 +1,8 @@
 """
-LLM Engine - Abstraction layer for LLM formatting services
+LLM Engine - Cloud Only Version
+Supports: Groq (Free Llama 3.1) and OpenAI (Paid GPT)
+No local AI processing
 """
-from typing import Optional
 import time
 import structlog
 from app.core.config import settings
@@ -10,33 +11,46 @@ logger = structlog.get_logger()
 
 
 class LLMEngine:
-    """Base LLM Engine class for clinical note formatting"""
+    """Cloud-based LLM Engine for clinical note formatting"""
     
     def __init__(self):
         self.provider = settings.AI_PROVIDER
+        self._validate_credentials()
+    
+    def _validate_credentials(self):
+        """Ensure required API keys are set"""
+        if self.provider == "groq" and not settings.GROQ_API_KEY:
+            logger.warning("GROQ_API_KEY not set. Formatting will fail.")
+        elif self.provider == "openai" and not settings.OPENAI_API_KEY:
+            logger.warning("OPENAI_API_KEY not set. Formatting will fail.")
     
     async def format_note(self, transcript: str, template_type: str = "soap") -> dict:
         """
-        Format transcript into clinical note
+        Format transcript into clinical note using cloud LLM
         
         Args:
-            transcript: Raw transcription text
-            template_type: Note template (soap, consultation, discharge)
+            transcript: Raw transcription text from phone recording
+            template_type: Note template (soap, consultation, discharge, procedure)
             
         Returns:
-            dict with formatted note and metadata
+            dict with formatted_note, template_used, processing_time, provider
         """
         start_time = time.time()
         
-        logger.info("Formatting clinical note", template=template_type)
+        logger.info("Formatting clinical note via cloud", 
+                   template=template_type, 
+                   provider=self.provider,
+                   transcript_length=len(transcript))
         
         # Get appropriate prompt
         prompt = self._get_prompt(transcript, template_type)
         
-        # Get completion from LLM
+        # Get completion from cloud LLM
         formatted_text = await self._get_completion(prompt)
         
         processing_time = time.time() - start_time
+        
+        logger.info("Cloud formatting complete", processing_time=f"{processing_time:.2f}s")
         
         return {
             "formatted_note": formatted_text,
@@ -85,6 +99,24 @@ Include:
 ## Consultation Note:
 """
         
+        elif template_type == "discharge":
+            return f"""Create a discharge summary from this dictation.
+
+Include:
+- Admission & Discharge Dates
+- Admitting Diagnosis
+- Discharge Diagnosis
+- Hospital Course
+- Discharge Medications
+- Follow-up Instructions
+- Discharge Condition
+
+## Dictation:
+{transcript}
+
+## Discharge Summary:
+"""
+        
         else:
             return f"""Format this clinical dictation into a structured medical note.
 
@@ -95,26 +127,71 @@ Include:
 """
     
     async def _get_completion(self, prompt: str) -> str:
-        """Get completion from configured LLM provider"""
+        """Get completion from cloud LLM provider"""
         
         if self.provider == "groq":
             return await self._complete_groq(prompt)
-        elif self.provider == "ollama":
-            return await self._complete_ollama(prompt)
         elif self.provider == "openai":
             return await self._complete_openai(prompt)
         else:
-            raise ValueError(f"Unknown LLM provider: {self.provider}")
+            raise ValueError(f"Unsupported cloud LLM provider: {self.provider}. Use 'groq' or 'openai'")
     
     async def _complete_groq(self, prompt: str) -> str:
-        """Complete using Groq API (FREE TIER - Llama 3.1)"""
+        """
+        Complete using Groq Cloud API (FREE TIER)
+        Uses Llama 3.1 70B model via Groq's fast inference
+        """
         try:
             from groq import Groq
+            
+            if not settings.GROQ_API_KEY:
+                raise ValueError("GROQ_API_KEY is required. Get free key at https://console.groq.com")
             
             client = Groq(api_key=settings.GROQ_API_KEY)
             
             response = client.chat.completions.create(
                 model=settings.GROQ_LLM_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert medical documentation assistant. Format clinical notes professionally and accurately. Always return properly formatted text with clear section headers."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,  # Lower temperature for consistent formatting
+                max_tokens=2000,
+                top_p=0.9,
+            )
+            
+            formatted_text = response.choices[0].message.content
+            
+            logger.info("Groq cloud completion successful", 
+                       tokens_used=response.usage.total_tokens if hasattr(response, 'usage') else 'N/A')
+            
+            return formatted_text
+            
+        except Exception as e:
+            logger.error("Groq cloud completion failed", error=str(e))
+            raise Exception(f"Cloud formatting failed: {str(e)}")
+    
+    async def _complete_openai(self, prompt: str) -> str:
+        """
+        Complete using OpenAI API (PAID)
+        Fallback option if Groq is unavailable
+        """
+        try:
+            from openai import AsyncOpenAI
+            
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("OPENAI_API_KEY is required")
+            
+            client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            response = await client.chat.completions.create(
+                model=settings.OPENAI_LLM_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -129,69 +206,15 @@ Include:
                 max_tokens=2000,
             )
             
-            return response.choices[0].message.content
+            formatted_text = response.choices[0].message.content
+            
+            logger.info("OpenAI cloud completion successful")
+            
+            return formatted_text
             
         except Exception as e:
-            logger.error("Groq completion failed", error=str(e))
-            raise
-    
-    async def _complete_ollama(self, prompt: str) -> str:
-        """Complete using local Ollama (FREE)"""
-        try:
-            import httpx
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
-                    json={
-                        "model": settings.OLLAMA_LLM_MODEL,
-                        "prompt": prompt,
-                        "stream": False,
-                        "options": {
-                            "temperature": 0.3,
-                            "max_tokens": 2000,
-                        }
-                    },
-                    timeout=60.0
-                )
-                
-                if response.status_code == 200:
-                    return response.json().get("response", "")
-                else:
-                    raise Exception(f"Ollama error: {response.text}")
-                    
-        except Exception as e:
-            logger.error("Ollama completion failed", error=str(e))
-            raise
-    
-    async def _complete_openai(self, prompt: str) -> str:
-        """Complete using OpenAI (PAID)"""
-        try:
-            from openai import AsyncOpenAI
-            
-            client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            
-            response = await client.chat.completions.create(
-                model=settings.OPENAI_LLM_MODEL,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert medical documentation assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.3,
-                max_tokens=2000,
-            )
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            logger.error("OpenAI completion failed", error=str(e))
-            raise
+            logger.error("OpenAI cloud completion failed", error=str(e))
+            raise Exception(f"Cloud formatting failed: {str(e)}")
 
 
 # Singleton instance
