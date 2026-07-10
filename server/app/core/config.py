@@ -35,14 +35,14 @@ class Settings(BaseSettings):
                 return ["*"]
         return v
     
-    # Database - SQLite for dev, Neon.tech for production
+    # Database - SQLite only for Vercel (no extra drivers needed)
     DATABASE_URL: str = "sqlite+aiosqlite:///./medivoice.db"
     
     # Redis - Optional
     REDIS_URL: Optional[str] = None
     
     # JWT Authentication
-    JWT_SECRET_KEY: str = "change-this-in-production-use-a-long-random-string"
+    JWT_SECRET_KEY: str = "medivoice-secret-key-change-in-production-123"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
