@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   name: import.meta.env.VITE_APP_NAME || 'MediVoice',
   version: import.meta.env.VITE_APP_VERSION || '0.1.0',
-  apiUrl: import.meta.env.VITE_API_URL || 'medivoice-bckend.vercel.app',
+  apiUrl: import.meta.env.VITE_API_URL || 'https://medivoice-bckend.vercel.app',
   apiPrefix: '/api/v1',
 } as const;
 
