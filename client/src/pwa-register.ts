@@ -14,7 +14,6 @@ export function registerPWA() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New update available
                   if (confirm('New version available! Update now?')) {
                     window.location.reload();
                   }
@@ -27,18 +26,5 @@ export function registerPWA() {
           console.error('SW registration failed:', error);
         });
     });
-  }
-}
-
-// Register background sync for offline recordings
-export async function registerBackgroundSync() {
-  if ('serviceWorker' in navigator && 'SyncManager' in window) {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-recordings');
-      console.log('Background sync registered');
-    } catch (error) {
-      console.error('Background sync failed:', error);
-    }
   }
 }
