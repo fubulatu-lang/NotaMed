@@ -37,7 +37,7 @@ export default function WaveformVisualizer({
       ctx.clearRect(0, 0, width, height);
 
       // Update bar heights
-      barsRef.current = barsRef.current.map((bar, i) => {
+      barsRef.current = barsRef.current.map((bar) => {
         const target = audioLevel * height * (0.3 + Math.random() * 0.7);
         return bar + (target - bar) * 0.2;
       });
