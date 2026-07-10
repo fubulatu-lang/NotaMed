@@ -1,7 +1,8 @@
 """
-STT Engine - Abstraction layer for speech-to-text services
+STT Engine - Cloud Only Version
+Supports: Groq (Free) and OpenAI (Paid)
+No local AI processing
 """
-from typing import Optional
 import structlog
 from app.core.config import settings
 
@@ -9,47 +10,64 @@ logger = structlog.get_logger()
 
 
 class STTEngine:
-    """Base STT Engine class"""
+    """Cloud-based Speech-to-Text Engine"""
     
     def __init__(self):
         self.provider = settings.AI_PROVIDER
+        self._validate_credentials()
+    
+    def _validate_credentials(self):
+        """Ensure required API keys are set"""
+        if self.provider == "groq" and not settings.GROQ_API_KEY:
+            logger.warning("GROQ_API_KEY not set. Transcription will fail.")
+        elif self.provider == "openai" and not settings.OPENAI_API_KEY:
+            logger.warning("OPENAI_API_KEY not set. Transcription will fail.")
     
     async def transcribe(self, audio_data: bytes, language: str = "en") -> dict:
         """
-        Transcribe audio to text
+        Transcribe audio to text using cloud STT
         
         Args:
-            audio_data: Raw audio bytes
-            language: Language code
+            audio_data: Raw audio bytes (from phone recording)
+            language: Language code (default: en)
             
         Returns:
-            dict with text, confidence, segments
+            dict with text, confidence, segments, duration, provider
         """
-        logger.info("Transcribing audio", provider=self.provider)
+        logger.info("Transcribing audio via cloud", provider=self.provider, size_bytes=len(audio_data))
         
         if self.provider == "groq":
             return await self._transcribe_groq(audio_data, language)
-        elif self.provider == "ollama":
-            return await self._transcribe_ollama(audio_data, language)
         elif self.provider == "openai":
             return await self._transcribe_openai(audio_data, language)
         else:
-            raise ValueError(f"Unknown STT provider: {self.provider}")
+            raise ValueError(f"Unsupported cloud STT provider: {self.provider}. Use 'groq' or 'openai'")
     
     async def _transcribe_groq(self, audio_data: bytes, language: str) -> dict:
-        """Transcribe using Groq API (FREE TIER)"""
+        """
+        Transcribe using Groq Cloud API (FREE TIER)
+        Uses Whisper Large v3 model via Groq's fast inference
+        """
         try:
             from groq import Groq
             
+            if not settings.GROQ_API_KEY:
+                raise ValueError("GROQ_API_KEY is required. Get free key at https://console.groq.com")
+            
             client = Groq(api_key=settings.GROQ_API_KEY)
             
-            # Groq uses Whisper model
+            # Send audio to Groq cloud for processing
             response = client.audio.transcriptions.create(
-                model=settings.GROQ_MODEL,
-                file=("recording.wav", audio_data),
+                model=settings.GROQ_STT_MODEL,
+                file=("recording.webm", audio_data),
                 language=language,
                 response_format="verbose_json",
+                temperature=0.0,  # Most accurate transcription
             )
+            
+            logger.info("Groq transcription complete", 
+                       confidence=getattr(response, 'confidence', 'N/A'),
+                       duration=getattr(response, 'duration', 0))
             
             return {
                 "text": response.text,
@@ -60,74 +78,43 @@ class STTEngine:
             }
             
         except Exception as e:
-            logger.error("Groq transcription failed", error=str(e))
-            raise
-    
-    async def _transcribe_ollama(self, audio_data: bytes, language: str) -> dict:
-        """Transcribe using local Ollama (FREE)"""
-        try:
-            import httpx
-            
-            async with httpx.AsyncClient() as client:
-                # Save audio temporarily
-                import tempfile
-                import os
-                
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
-                    tmp.write(audio_data)
-                    tmp_path = tmp.name
-                
-                # Use Ollama API
-                response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/transcribe",
-                    json={
-                        "model": settings.OLLAMA_STT_MODEL,
-                        "file": tmp_path,
-                    }
-                )
-                
-                # Cleanup
-                os.unlink(tmp_path)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    return {
-                        "text": data.get("text", ""),
-                        "confidence": 0.8,
-                        "provider": "ollama"
-                    }
-                else:
-                    raise Exception(f"Ollama error: {response.text}")
-                    
-        except Exception as e:
-            logger.error("Ollama transcription failed", error=str(e))
-            raise
+            logger.error("Groq cloud transcription failed", error=str(e))
+            raise Exception(f"Cloud transcription failed: {str(e)}")
     
     async def _transcribe_openai(self, audio_data: bytes, language: str) -> dict:
-        """Transcribe using OpenAI Whisper (PAID)"""
+        """
+        Transcribe using OpenAI Whisper API (PAID)
+        Fallback option if Groq is unavailable
+        """
         try:
             from openai import AsyncOpenAI
+            
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("OPENAI_API_KEY is required")
             
             client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
             
             response = await client.audio.transcriptions.create(
-                model=settings.OPENAI_WHISPER_MODEL,
-                file=("recording.wav", audio_data),
+                model=settings.OPENAI_STT_MODEL,
+                file=("recording.webm", audio_data),
                 language=language,
                 response_format="verbose_json",
+                temperature=0.0,
             )
+            
+            logger.info("OpenAI transcription complete", duration=getattr(response, 'duration', 0))
             
             return {
                 "text": response.text,
-                "confidence": getattr(response, 'confidence', 0.9),
+                "confidence": getattr(response, 'confidence', 0.95),
                 "segments": getattr(response, 'segments', []),
                 "duration": getattr(response, 'duration', 0.0),
                 "provider": "openai"
             }
             
         except Exception as e:
-            logger.error("OpenAI transcription failed", error=str(e))
-            raise
+            logger.error("OpenAI cloud transcription failed", error=str(e))
+            raise Exception(f"Cloud transcription failed: {str(e)}")
 
 
 # Singleton instance
