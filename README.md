@@ -1,135 +1,142 @@
-
-# 🎤 MediVoice - Clinical Voice-to-Text Notes
+# 🎤 MediVoice - Clinical Voice-to-Text Notes (Cloud Version)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Cloud Ready](https://img.shields.io/badge/Cloud-Ready-green.svg)]()
+[![Free Tier](https://img.shields.io/badge/Free_Tier-Available-brightgreen.svg)]()
 
-A highly secure Progressive Web App (PWA) designed to alleviate administrative burden on clinicians by capturing voice dictations and automatically structuring them into standard clinical formats (SOAP notes, consultation notes, etc.).
+> **📱 Phone-Optimized Clinical Dictation App**
+> Record voice notes on your phone, process in the cloud, get formatted SOAP notes.
 
-## 🏗️ Architecture
-┌─────────────────┐ ┌──────────────┐ ┌─────────────┐
-│ React PWA │────▶│ FastAPI │────▶│ STT Engine │
-│ (Mobile/Web) │◀────│ Backend │◀────│ (Medical) │
-└─────────────────┘ └──────────────┘ └─────────────┘
+## ☁️ Architecture (Cloud-Only)
+┌─────────────┐ ┌──────────────┐ ┌─────────────┐
+│ Phone PWA │────▶│ FastAPI │────▶│ Groq Cloud │
+│ (Recording)│◀────│ (Vercel) │◀────│ (Free STT) │
+└─────────────┘ └──────────────┘ └─────────────┘
 │
 ▼
-┌──────────────┐
-│ LLM Engine │
-│ (GPT-4/etc) │
-└──────────────┘
+┌──────────────┐ ┌─────────────┐
+│ Neon.tech │ │ Groq Cloud │
+│ (Database) │ │ (Free LLM) │
+└──────────────┘ └─────────────┘
 
 text
 
-## ✨ Features (MVP)
+## ✨ Features
 
-- 🎙️ One-tap medical dictation recording
-- 🏥 Medical-grade speech-to-text transcription
-- 📋 Automatic SOAP note formatting
-- 📱 Mobile-first Progressive Web App
-- 🔒 Zero-retention data processing
-- 📋 Smart copy-to-clipboard for EMRs
+- 🎙️ **One-tap recording** on your phone
+- ☁️ **Cloud AI processing** - no local AI needed
+- 🆓 **Free tier** using Groq API
+- 📋 **SOAP note formatting** automatically
+- 📱 **PWA** - install on phone like an app
+- 🔒 **Zero data retention** - HIPAA conscious
+- 📋 **Copy to EMR** with one tap
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Phone/Cloud)
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.11+
-- PostgreSQL (or Neon.tech account)
-- STT API key (AWS/Google/OpenAI)
-- LLM API key (Azure OpenAI/AWS Bedrock)
+### Step 1: Get Free API Keys
 
-### Local Development
+1. **Groq API** (STT + LLM):
+   - Go to https://console.groq.com
+   - Sign up for free account
+   - Get your API key
+   - Free tier: Enough for testing/MVP
+
+2. **Neon.tech** (Database):
+   - Go to https://neon.tech
+   - Create free PostgreSQL database
+   - Get connection string
+
+### Step 2: Configure Environment
 
 ```bash
-# Clone repository
-git clone https://github.com/YOUR_USERNAME/medivoice.git
-cd medivoice
+# Clone repo
+git clone https://github.com/fubulatu-lang/MediVoice.git
+cd MediVoice
 
-# Copy environment variables
+# Set up environment
 cp .env.example .env
-# Edit .env with your API keys
+Edit .env and add:
 
-# Backend setup
-cd server
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements/dev.txt
-uvicorn app.main:app --reload
+env
+GROQ_API_KEY=gsk_your_key_here
+AI_PROVIDER=groq
+DATABASE_URL=your_neon_tech_url
+Step 3: Deploy Backend (Vercel/Railway)
+Option A: Vercel (Easiest)
 
-# Frontend setup (new terminal)
-cd client
-npm install
-npm run dev
-
-# Visit http://localhost:5173
-Deployment
 bash
-# Deploy frontend to Vercel
 vercel --prod
+Option B: Railway (Free)
 
-# Deploy backend (Docker)
-docker build -t medivoice-api ./server
-docker run -p 8000:8000 medivoice-api
+bash
+railway up
+Step 4: Use on Phone
+Open deployed URL on your phone
+
+Tap "Install" to add as PWA
+
+Sign up / Login
+
+Start recording!
+
+💰 Free Tier Limits
+Service	Free Tier	Limits
+Groq API	✅ Yes	~30 requests/min
+Neon.tech	✅ Yes	3GB storage
+Vercel	✅ Yes	100GB bandwidth
+Railway	✅ Yes	$5 credit
 📁 Project Structure
 text
 medivoice/
-├── client/          # React PWA Frontend
-├── server/          # FastAPI Backend  
+├── client/          # React PWA (Phone UI)
+├── server/          # FastAPI (Cloud Backend)
 ├── docs/            # Documentation
-└── scripts/         # Utility scripts
-🔒 Security & HIPAA Compliance
-Zero persistent storage of patient data
+└── scripts/         # Setup scripts
+🔒 Privacy & Security
+✅ All processing in cloud (no local AI)
 
-End-to-end TLS 1.3 encryption
+✅ Audio deleted after transcription
 
-Automatic session timeouts (10 min)
+✅ Notes cleared on logout
 
-Volatile memory processing only
+✅ TLS encryption everywhere
 
-PHI detection and scrubbing
+✅ No patient data stored
 
-Audit logging for compliance
+🆘 Support
+GitHub Issues: Report bugs
 
-🗺️ Roadmap
-Phase 1: MVP (Current)
-Basic recording and transcription
+Groq Discord: API help
 
-SOAP note formatting
+Documentation: /docs
 
-Simple copy-to-clipboard
+Built for clinicians, optimized for phones, powered by cloud AI. 🏥📱☁️
 
-Email/password auth
+text
 
-Phase 2: Enhanced
-Multiple clinical templates
+---
 
-Offline recording support
+## ✅ Batch 6 Complete!
 
-Background recording
+### 📊 Summary of Changes Made:
 
-Confidence highlighting
+| File | Change | Reason |
+|------|--------|--------|
+| `server/app/core/config.py` | Removed Ollama configs | No local AI |
+| `server/app/services/stt/engine.py` | Cloud-only providers | Phone can't run AI |
+| `server/app/services/llm/engine.py` | Cloud-only providers | Phone can't run AI |
+| `server/.env.example` | Removed Ollama vars | Not needed |
+| `.env.example` (root) | Removed Ollama vars | Not needed |
+| `server/app/main.py` | Updated for cloud mode | Better messaging |
+| `README.md` | Cloud-only instructions | Phone-friendly guide |
 
-Phase 3: Enterprise
-HL7 FHIR integration
+### 🎯 Architecture Now:
+Phone (Recording Only) → Internet → Cloud APIs (All AI Processing)
 
-EMR webhooks
+text
 
-Team collaboration
+- **Phone does**: Recording, UI, display
+- **Cloud does**: STT, LLM, Database, Auth
+- **All free**: Groq + Neon.tech + Vercel
 
-Custom templates
-
-🤝 Contributing
-See CONTRIBUTING.md for guidelines.
-
-📄 License
-This project is licensed under the MIT License - see LICENSE file.
-
-⚠️ Disclaimer
-This software is provided as-is. Ensure compliance with local healthcare regulations (HIPAA, GDPR, etc.) before using in production with real patient data.
-
-🙏 Acknowledgments
-Material Design 3 for the UI framework
-
-OpenAI/AWS/Google for STT and LLM capabilities
-
-The medical community for inspiration
+The app is now fully cloud-based and phone-optimized! 🎉
