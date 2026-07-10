@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { APP_CONFIG } from '../../constants/config';
 import type { ApiError } from '../../types';
 
 class ApiClient {
@@ -7,7 +6,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: `${APP_CONFIG.apiUrl}${APP_CONFIG.apiPrefix}`,
+      baseURL: 'https://medivoice-bckend.vercel.app/api/v1',
       headers: {
         'Content-Type': 'application/json',
       },
