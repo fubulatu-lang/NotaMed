@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { HiExclamationTriangle } from 'react-icons/hi';
+import { Component, ErrorInfo, ReactNode } from 'react';
+import { HiExclamationCircle } from 'react-icons/hi';
 
 interface Props {
   children: ReactNode;
