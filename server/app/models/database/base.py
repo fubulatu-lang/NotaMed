@@ -1,13 +1,16 @@
 """
-Database Base Configuration
+Database Base Configuration - SQLite for Vercel Serverless
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
+# Use SQLite - works without extra drivers on Vercel
+DATABASE_URL = "sqlite+aiosqlite:///./medivoice.db"
+
 # Create async engine
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
 )
