@@ -23,6 +23,7 @@ from app.models.domain.user import (
     TokenResponse,
     TokenRefresh,
 )
+from app.api.deps import get_current_user, get_required_user
 
 router = APIRouter()
 
@@ -121,7 +122,3 @@ async def get_current_user_info(
 ):
     """Get current authenticated user info"""
     return current_user
-
-
-# Import at bottom to avoid circular dependency
-from app.api.deps import get_required_user
