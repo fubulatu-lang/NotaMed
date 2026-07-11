@@ -35,8 +35,8 @@ class Settings(BaseSettings):
                 return ["*"]
         return v
     
-    # Database - SQLite only for Vercel (no extra drivers needed)
-    DATABASE_URL: str = "sqlite+aiosqlite:///./medivoice.db"
+    # Database - /tmp for Vercel serverless
+    DATABASE_URL: str = "sqlite+aiosqlite:///tmp/medivoice.db"
     
     # Redis - Optional
     REDIS_URL: Optional[str] = None
