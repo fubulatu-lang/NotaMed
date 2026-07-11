@@ -4,27 +4,32 @@ Security utilities for authentication and encryption
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import settings
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against its hash"""
-    # Truncate password to 72 bytes for bcrypt
-    plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    # Ensure password is bytes and truncated to 72 bytes
+    if isinstance(plain_password, str):
+        plain_password = plain_password.encode('utf-8')
+    plain_password = plain_password[:72]
+    
+    if isinstance(hashed_password, str):
+        hashed_password = hashed_password.encode('utf-8')
+    
+    return bcrypt.checkpw(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Generate password hash - truncate to 72 bytes for bcrypt"""
+    """Generate password hash"""
     # bcrypt max length is 72 bytes
-    password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        password_bytes = password_bytes[:72]
-    return pwd_context.hash(password_bytes.decode('utf-8', errors='ignore'))
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    password = password[:72]
+    
+    hashed = bcrypt.hashpw(password, bcrypt.gensalt())
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -65,7 +70,7 @@ def verify_token(token: str) -> Optional[dict]:
         payload = jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            algorithm=settings.JWT_ALGORITHM
         )
         return payload
     except JWTError:
