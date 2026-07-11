@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,14 +21,11 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       toast.success('Welcome back!');
-      // Force navigation after login
-      setTimeout(() => {
-        navigate('/', { replace: true });
-      }, 100);
+      // Force hard redirect to dashboard
+      window.location.href = '/';
     } catch (error: any) {
       const message = error?.details?.detail || error?.message || 'Login failed';
       toast.error(message);
-    } finally {
       setIsLoading(false);
     }
   };
