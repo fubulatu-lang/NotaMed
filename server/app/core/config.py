@@ -1,5 +1,5 @@
 """
-Application Configuration - CLOUD ONLY VERSION
+Application Configuration
 """
 from typing import List, Optional
 from pydantic_settings import BaseSettings
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
                 return ["*"]
         return v
     
-    # Database - /tmp for Vercel serverless
+    # Database - Set in Vercel environment variables
     DATABASE_URL: str = "sqlite+aiosqlite:///tmp/medivoice.db"
     
     # Redis - Optional
@@ -55,11 +55,6 @@ class Settings(BaseSettings):
     GROQ_API_KEY: Optional[str] = None
     GROQ_STT_MODEL: str = "whisper-large-v3"
     GROQ_LLM_MODEL: str = "llama-3.1-70b-versatile"
-    
-    # OpenAI (PAID - Optional)
-    OPENAI_API_KEY: Optional[str] = None
-    OPENAI_STT_MODEL: str = "whisper-1"
-    OPENAI_LLM_MODEL: str = "gpt-3.5-turbo"
     
     # Active AI Provider
     AI_PROVIDER: str = "groq"
