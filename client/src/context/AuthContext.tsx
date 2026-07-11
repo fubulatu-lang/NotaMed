@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api/auth';
 
 interface User {
@@ -61,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: { email: string; password: string; fullName?: string }) => {
     await authService.register(data);
-    // Auto-login after registration
     await authService.login({ email: data.email, password: data.password });
     await checkAuth();
   };
