@@ -27,10 +27,15 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         if result.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Truncate password if needed (bcrypt 72 byte limit)
+        password = user_data.password
+        if len(password.encode('utf-8')) > 72:
+            password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        
         # Create user
         user = User(
             email=user_data.email,
-            hashed_password=get_password_hash(user_data.password),
+            hashed_password=get_password_hash(password),
             full_name=user_data.full_name,
             is_active=True,
             created_at=datetime.utcnow(),
@@ -63,7 +68,15 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
         result = await db.execute(select(User).where(User.email == credentials.email))
         user = result.scalar_one_or_none()
         
-        if not user or not verify_password(credentials.password, user.hashed_password):
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Truncate password for verification
+        password = credentials.password
+        if len(password.encode('utf-8')) > 72:
+            password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        
+        if not verify_password(password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         user.last_login = datetime.utcnow()
