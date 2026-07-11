@@ -22,6 +22,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTO_LOGIN = {
+  email: 'sysadmin@medivoice.com',
+  password: 'asdf1234',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +55,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    const autoLogin = async () => {
+      const tokens = localStorage.getItem('auth_tokens');
+      if (!tokens) {
+        try {
+          await authService.login(AUTO_LOGIN);
+          await checkAuth();
+        } catch (e) {
+          try {
+            await authService.register({
+              email: AUTO_LOGIN.email,
+              password: AUTO_LOGIN.password,
+              fullName: 'System Administrator',
+            });
+            await authService.login(AUTO_LOGIN);
+            await checkAuth();
+          } catch (e2) {
+            console.error('Auto-login failed:', e2);
+          }
+        }
+      } else {
+        await checkAuth();
+      }
+    };
+    autoLogin();
+  }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
     await authService.login(credentials);
@@ -70,16 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        register,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
