@@ -1,26 +1,32 @@
 """
 Database Base Configuration - SQLite for Vercel Serverless
+Uses /tmp directory for write access on Vercel
 """
+import os
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
-from app.core.config import settings
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-# Use SQLite - works without extra drivers on Vercel
-DATABASE_URL = "sqlite+aiosqlite:///./medivoice.db"
+# Use /tmp for Vercel serverless (only writable directory)
+DB_PATH = '/tmp/medivoice.db'
 
-# Create async engine
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True,
+# Sync engine for table creation
+sync_engine = create_engine(
+    f"sqlite:///{DB_PATH}",
+    echo=False,
+    connect_args={"check_same_thread": False}
 )
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
+# Async engine for requests
+async_engine = create_async_engine(
+    f"sqlite+aiosqlite:///{DB_PATH}",
+    echo=False,
+    connect_args={"check_same_thread": False}
 )
+
+# Session makers
+SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
+AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
@@ -28,10 +34,14 @@ class Base(DeclarativeBase):
     pass
 
 
+def init_db_sync():
+    """Initialize database tables - synchronous version"""
+    Base.metadata.create_all(bind=sync_engine)
+
+
 async def init_db():
     """Initialize database tables"""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    init_db_sync()
 
 
 async def get_db() -> AsyncSession:
@@ -39,7 +49,6 @@ async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
