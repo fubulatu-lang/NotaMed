@@ -5,8 +5,7 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    // Hardcoded backend URL - change this to your actual backend URL
-    const BASE_URL = 'https://medivoice-bckend.vercel.app/api/v1';
+    const BASE_URL = 'https://medivoice-api.vercel.app/api/v1';
     
     this.client = axios.create({
       baseURL: BASE_URL,
@@ -23,9 +22,7 @@ class ApiClient {
           try {
             const { accessToken } = JSON.parse(tokens);
             config.headers.Authorization = `Bearer ${accessToken}`;
-          } catch (e) {
-            // Invalid tokens in storage
-          }
+          } catch (e) {}
         }
         return config;
       },
