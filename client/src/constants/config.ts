@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   name: 'MediVoice',
   version: '0.1.0',
-  apiUrl: 'https://medivoice-bckend.vercel.app',
+  apiUrl: 'https://medivoice-api.vercel.app',
   apiPrefix: '/api/v1',
 } as const;
 
