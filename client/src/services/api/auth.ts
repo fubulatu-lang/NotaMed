@@ -1,21 +1,62 @@
 import { apiClient } from './client';
-import type { User, AuthTokens, LoginCredentials, RegisterData } from '../../types';
+
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface UserResponse {
+  id: number;
+  email: string;
+  full_name: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: string;
+  last_login: string | null;
+}
 
 class AuthService {
-  async login(credentials: LoginCredentials): Promise<AuthTokens> {
-    return apiClient.post<AuthTokens>('/auth/login', credentials);
+  async register(data: { email: string; password: string; fullName?: string }) {
+    const response = await apiClient.post<UserResponse>('/auth/register', {
+      email: data.email,
+      password: data.password,
+      full_name: data.fullName || null,
+    });
+    return response;
   }
 
-  async register(data: RegisterData): Promise<User> {
-    return apiClient.post<User>('/auth/register', data);
+  async login(credentials: { email: string; password: string }) {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
+      email: credentials.email,
+      password: credentials.password,
+    });
+    
+    // Store tokens
+    localStorage.setItem('auth_tokens', JSON.stringify({
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+    }));
+    
+    return response;
   }
 
-  async getCurrentUser(_token: string): Promise<User> {
-    return apiClient.get<User>('/auth/me');
+  async getCurrentUser() {
+    return apiClient.get<UserResponse>('/auth/me');
   }
 
-  async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    return apiClient.post<AuthTokens>('/auth/refresh', { refresh_token: refreshToken });
+  async refreshToken(refreshToken: string) {
+    const response = await apiClient.post<LoginResponse>('/auth/refresh', {
+      refresh_token: refreshToken,
+    });
+    
+    localStorage.setItem('auth_tokens', JSON.stringify({
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+    }));
+    
+    return response;
   }
 }
 
