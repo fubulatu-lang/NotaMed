@@ -1,5 +1,5 @@
 """
-Main FastAPI Application - Cloud Version
+Main FastAPI Application
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -14,56 +14,55 @@ logger = setup_logging()
 
 async def create_admin_user():
     """Auto-create system admin on startup"""
-    from app.models.database.base import init_db_sync, SyncSessionLocal
+    from app.models.database.base import async_engine
     from app.models.database.user_table import User
     from app.core.security import get_password_hash
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from app.models.database.base import AsyncSessionLocal
     
-    # Initialize tables first
-    init_db_sync()
-    
-    # Check if admin exists
-    db = SyncSessionLocal()
-    try:
-        from sqlalchemy import select
-        result = db.execute(select(User).where(User.email == "sysadmin@medivoice.com"))
-        admin = result.scalar_one_or_none()
-        
-        if not admin:
-            admin = User(
-                email="sysadmin@medivoice.com",
-                hashed_password=get_password_hash("asdf1234"),
-                full_name="System Administrator",
-                is_active=True,
-                is_verified=True,
-            )
-            db.add(admin)
-            db.commit()
-            logger.info("Admin user created")
-        else:
-            logger.info("Admin user already exists")
-    except Exception as e:
-        db.rollback()
-        logger.error("Admin creation failed", error=str(e))
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(select(User).where(User.email == "sysadmin@medivoice.com"))
+            admin = result.scalar_one_or_none()
+            
+            if not admin:
+                admin = User(
+                    email="sysadmin@medivoice.com",
+                    hashed_password=get_password_hash("asdf1234"),
+                    full_name="System Administrator",
+                    is_active=True,
+                    is_verified=True,
+                )
+                db.add(admin)
+                await db.commit()
+                logger.info("✅ Admin user created")
+            else:
+                logger.info("✅ Admin user already exists")
+        except Exception as e:
+            await db.rollback()
+            logger.error("Admin creation failed", error=str(e))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    logger.info("Starting MediVoice API")
+    logger.info("🚀 Starting MediVoice API")
     
-    # Create admin user on startup
+    # Initialize database
+    from app.models.database.base import init_db
+    await init_db()
+    logger.info("✅ Database tables created")
+    
+    # Create admin user
     await create_admin_user()
     
     yield
     
-    logger.info("Shutting down MediVoice API")
+    logger.info("👋 Shutting down")
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application"""
-    
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
@@ -72,7 +71,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     
-    # CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -81,19 +79,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Session cleanup
     app.add_middleware(SessionCleanupMiddleware)
-    
-    # API routes
     app.include_router(api_router, prefix=settings.API_PREFIX)
     
     @app.get("/health")
     async def health_check():
-        return {
-            "status": "healthy",
-            "version": settings.APP_VERSION,
-            "database": "connected"
-        }
+        return {"status": "healthy", "version": settings.APP_VERSION, "database": "connected"}
     
     @app.get("/")
     async def root():
