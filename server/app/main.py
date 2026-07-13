@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1.endpoints import auth, recordings, history, templates, health
+from app.api.v1.endpoints import auth, health
+from app.api.v1.endpoints.transcription import router as transcription_router
+from app.api.v1.endpoints.formatting import router as formatting_router
 from app.db.database import engine, Base
 
 # Create tables
@@ -13,11 +15,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Configuration - Allow your frontend
+# CORS Configuration
 origins = [
     "https://notamed.vercel.app",
-    "http://localhost:5173",  # For local development
-    "http://localhost:3000",  # Alternative local dev
+    "http://localhost:5173",
+    "http://localhost:3000",
 ]
 
 if settings.CORS_ORIGINS:
@@ -33,9 +35,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(recordings.router, prefix="/api/v1/recordings", tags=["recordings"])
-app.include_router(history.router, prefix="/api/v1/history", tags=["history"])
-app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
+app.include_router(transcription_router, prefix="/api/v1/recordings", tags=["recordings"])
+app.include_router(formatting_router, prefix="/api/v1/formatting", tags=["formatting"])
 app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
 
 # Root endpoint
