@@ -1,96 +1,58 @@
-"""
-Note Formatting Endpoints
-"""
-import time
-from fastapi import APIRouter, Depends, HTTPException
-from app.api.deps import get_required_user
-from app.models.database.user_table import User
-from app.models.domain.transcription import FormattingRequest, FormattedNote
-from app.services.llm.engine import llm_engine
-import structlog
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from typing import Dict, Any
+from app.core.config import settings
+from app.core.security import get_current_user
+from app.models.domain.user import User
+import groq
+import json
 
-logger = structlog.get_logger()
 router = APIRouter()
 
+class FormatRequest(BaseModel):
+    transcript: str
+    template: str = "SOAP"
 
-@router.post("/note", response_model=FormattedNote)
-async def format_clinical_note(
-    request: FormattingRequest,
-    current_user: User = Depends(get_required_user),
+class FormatResponse(BaseModel):
+    formatted_note: Dict[str, Any]
+
+@router.post("/note", response_model=FormatResponse)
+async def format_note(
+    req: FormatRequest,
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Format raw transcription into structured clinical note
+    Accept a transcript and a template, return a structured SOAP note.
     """
-    
-    # Validate transcript
-    if not request.transcript or len(request.transcript.strip()) < 10:
-        raise HTTPException(
-            status_code=400,
-            detail="Transcript is too short for formatting"
-        )
-    
-    # Validate template type
-    valid_templates = ["soap", "consultation", "discharge", "procedure"]
-    if request.template_type not in valid_templates:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid template. Choose from: {', '.join(valid_templates)}"
-        )
-    
-    logger.info(
-        "Formatting clinical note",
-        user_id=current_user.id,
-        template=request.template_type,
-        transcript_length=len(request.transcript),
-    )
-    
     try:
-        # Format note using LLM
-        result = await llm_engine.format_note(
-            transcript=request.transcript,
-            template_type=request.template_type,
+        client = groq.Groq(api_key=settings.GROQ_API_KEY)
+        # Build prompt based on template
+        prompt = f"""Convert the following clinical dictation into a structured {req.template} note.
+        Use Subjective, Objective, Assessment, Plan format.
+        Dictation: {req.transcript}
+        Output only valid JSON with keys: subjective, objective, assessment, plan.
+        Do not include any additional text outside the JSON.
+        """
+        response = client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"}
         )
-        
-        return FormattedNote(
-            original_transcript=request.transcript,
-            formatted_note=result["formatted_note"],
-            template_used=result["template_used"],
-            confidence=0.9,  # Placeholder
-            processing_time=result["processing_time"],
-        )
-        
+        content = response.choices[0].message.content
+        try:
+            note_data = json.loads(content)
+        except json.JSONDecodeError:
+            # Fallback: try to extract JSON from text
+            import re
+            match = re.search(r'\{.*\}', content, re.DOTALL)
+            if match:
+                note_data = json.loads(match.group())
+            else:
+                note_data = {"raw": content}
+        return FormatResponse(formatted_note=note_data)
     except Exception as e:
-        logger.error("Formatting failed", error=str(e))
         raise HTTPException(
-            status_code=500,
-            detail=f"Note formatting failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Groq API error: {str(e)}"
         )
-
-
-@router.get("/templates")
-async def list_templates(
-    current_user: User = Depends(get_required_user),
-):
-    """List available note templates"""
-    return {
-        "templates": [
-            {
-                "id": "soap",
-                "name": "SOAP Note",
-                "description": "Subjective, Objective, Assessment, Plan",
-                "sections": ["Subjective", "Objective", "Assessment", "Plan"],
-            },
-            {
-                "id": "consultation",
-                "name": "Consultation Note",
-                "description": "Specialist consultation documentation",
-                "sections": ["Reason", "History", "Examination", "Assessment", "Recommendations"],
-            },
-            {
-                "id": "discharge",
-                "name": "Discharge Summary",
-                "description": "Hospital discharge documentation",
-                "sections": ["Admission", "Course", "Discharge", "Medications", "Follow-up"],
-            },
-        ]
-    }
