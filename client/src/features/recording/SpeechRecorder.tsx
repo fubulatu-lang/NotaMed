@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { formatNote, saveNote } from '../../api/notes';
+import { config } from '../../api/config';
 
-// Extend Window interface to include SpeechRecognition
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -10,29 +8,11 @@ declare global {
   }
 }
 
-interface SpeechRecognitionEvent {
-  results: {
-    length: number;
-    [index: number]: {
-      isFinal: boolean;
-      [index: number]: {
-        transcript: string;
-        confidence: number;
-      };
-    };
-  };
-}
-
-interface SpeechRecognitionErrorEvent {
-  error: string;
-}
-
 const SpeechRecorder = () => {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [soapNote, setSoapNote] = useState<any>(null);
-  const { user } = useAuth();
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -47,7 +27,7 @@ const SpeechRecorder = () => {
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
-    rec.onresult = (event: SpeechRecognitionEvent) => {
+    rec.onresult = (event: any) => {
       let final = '';
       let interim = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -61,7 +41,7 @@ const SpeechRecorder = () => {
       setTranscript(final || interim);
     };
 
-    rec.onerror = (event: SpeechRecognitionErrorEvent) => {
+    rec.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
     };
@@ -89,26 +69,25 @@ const SpeechRecorder = () => {
   };
 
   const handleProcess = async () => {
-    if (!transcript.trim() || !user) return;
+    if (!transcript.trim()) return;
     setIsProcessing(true);
     try {
-      const result = await formatNote(transcript, 'SOAP');
-      setSoapNote(result.formatted_note);
+      const res = await fetch(config.api.endpoints.formatting.note, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, template: 'SOAP' }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Formatting failed');
+      }
+      const data = await res.json();
+      setSoapNote(data.formatted_note);
     } catch (err) {
       console.error('Formatting failed:', err);
       alert('Failed to format note. Please try again.');
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!soapNote || !transcript) return;
-    try {
-      await saveNote({ transcript, soap_note: soapNote, template: 'SOAP' });
-      alert('Note saved!');
-    } catch (err) {
-      alert('Failed to save note.');
     }
   };
 
@@ -143,7 +122,9 @@ const SpeechRecorder = () => {
             <p><strong>Assessment:</strong> {soapNote.assessment}</p>
             <p><strong>Plan:</strong> {soapNote.plan}</p>
           </div>
-          <button onClick={handleSave}>Save Note</button>
+          <button onClick={() => navigator.clipboard.writeText(JSON.stringify(soapNote, null, 2))}>
+            Copy SOAP
+          </button>
         </div>
       )}
     </div>
