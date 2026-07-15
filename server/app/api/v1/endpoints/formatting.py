@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Dict, Any
 from app.core.config import settings
-from app.core.security import get_current_user
-from app.models.domain.user import User
 import groq
 import json
+import re
 
 router = APIRouter()
 
@@ -17,16 +16,13 @@ class FormatResponse(BaseModel):
     formatted_note: Dict[str, Any]
 
 @router.post("/note", response_model=FormatResponse)
-async def format_note(
-    req: FormatRequest,
-    current_user: User = Depends(get_current_user)
-):
+async def format_note(req: FormatRequest):
     """
-    Accept a transcript and a template, return a structured SOAP note.
+    Accept a transcript and return a structured SOAP note.
+    No authentication required.
     """
     try:
         client = groq.Groq(api_key=settings.GROQ_API_KEY)
-        # Build prompt based on template
         prompt = f"""Convert the following clinical dictation into a structured {req.template} note.
         Use Subjective, Objective, Assessment, Plan format.
         Dictation: {req.transcript}
@@ -43,8 +39,6 @@ async def format_note(
         try:
             note_data = json.loads(content)
         except json.JSONDecodeError:
-            # Fallback: try to extract JSON from text
-            import re
             match = re.search(r'\{.*\}', content, re.DOTALL)
             if match:
                 note_data = json.loads(match.group())
