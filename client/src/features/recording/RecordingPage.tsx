@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { HiMicrophone, HiStop, HiPlay, HiPause } from 'react-icons/hi';
+import SpeechRecorder from './SpeechRecorder';
 
 export default function RecordingPage() {
   const navigate = useNavigate();
@@ -19,6 +20,15 @@ export default function RecordingPage() {
       setDuration((prev) => prev + 1);
     }, 1000);
   }, []);
+
+  const RecordingPage = () => {
+  return (
+    <div className="recording-page">
+      <h1>Clinical Dictation</h1>
+      <SpeechRecorder />
+    </div>
+  );
+};
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
