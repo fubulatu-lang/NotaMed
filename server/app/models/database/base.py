@@ -5,20 +5,23 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# SQLAlchemy Base for all models
+# SQLAlchemy Base
 Base = declarative_base()
 
-# Database configuration – uncomment and adjust as needed
-# engine = create_engine(settings.DATABASE_URL)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Database URL – fallback to SQLite if not set
+DATABASE_URL = getattr(settings, "DATABASE_URL", "sqlite:///./notamed.db")
 
-# Dependency to get DB session
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
+# Engine and session
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# REMOVED the import of Note to break circular dependency.
-# Models are now imported via the database package __init__.py
+# Dependency for FastAPI
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
