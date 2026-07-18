@@ -1,27 +1,33 @@
-# backend/app/core/config.py
 from pydantic_settings import BaseSettings
-from typing import List
+from pydantic import field_validator
+from typing import List, Union
+import json
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "NotaMed MVP"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
     
-    DATABASE_URL: str  # Neon gives postgresql://, we parse to asyncpg later
+    DATABASE_URL: str
     
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
     GROQ_API_KEY: str
     
-    # IMPORTANT: Add your production Vercel URL here + localhost
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "https://your-app-name.vercel.app",  # <-- CHANGE THIS TO YOUR VERCEL PRODUCTION URL
-        # If you have preview deployments, you can dynamically allow them via regex,
-        # but for MVP, just add the specific ones or use "*" (not recommended for prod).
-    ]
+    # CORS origins as JSON string in env, e.g. '["http://localhost:3000", "https://notamed.vercel.app"]'
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = "[]"
+    
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return []
+        return v
     
     class Config:
         env_file = ".env"
