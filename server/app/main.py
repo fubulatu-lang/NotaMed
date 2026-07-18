@@ -1,43 +1,51 @@
+# server/app/main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
 from app.api.v1.endpoints import formatting, health
+from app.core.config import settings
 
 app = FastAPI(
-    title="NotaMed API v1.0.0",
-    description="Voice-to-Text Medical Note Generator",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    version="1.0.0",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
-# CORS Configuration
-origins = [
-    "https://notamed.vercel.app",
-    "http://localhost:5173",
-    "http://localhost:3000",
-]
-if settings.CORS_ORIGINS:
-    origins.extend(settings.CORS_ORIGINS.split(","))
+# Configure CORS
+def get_cors_origins() -> list[str]:
+    """Parse CORS origins from settings, allow wildcard in development."""
+    origins = []
+    # Parse comma-separated list
+    for origin in settings.CORS_ORIGINS.split(","):
+        origin = origin.strip()
+        if origin:
+            origins.append(origin)
+
+    # In development, allow all (by adding "*")
+    if settings.ENVIRONMENT == "development" and settings.DEBUG:
+        origins.append("*")
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_origins = []
+    for origin in origins:
+        if origin not in seen:
+            seen.add(origin)
+            unique_origins.append(origin)
+    return unique_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers (no authentication)
-app.include_router(formatting.router, prefix="/api/v1/formatting", tags=["formatting"])
-app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
+# Include routers
+app.include_router(health.router, prefix=settings.API_V1_STR, tags=["health"])
+app.include_router(formatting.router, prefix=settings.API_V1_STR, tags=["formatting"])
 
 @app.get("/")
 async def root():
-    return {"message": "NotaMed API is running"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"message": "NotaMed API is running", "environment": settings.ENVIRONMENT}
