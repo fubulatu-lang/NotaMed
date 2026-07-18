@@ -125,10 +125,12 @@ export const SpeechRecorder: React.FC = () => {
   };
 
   const handleProcess = async () => {
-    if (!transcript.trim()) return;
-    setIsProcessing(true);
-    setError(null);
-
+  if (!transcript || transcript.trim() === '') {
+    alert('Please speak something first.');
+    return;
+  }
+  // ... rest of the function
+};
     const isHealthy = await checkBackendHealth();
     if (!isHealthy) {
       setError(
