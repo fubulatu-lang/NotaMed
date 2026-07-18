@@ -1,30 +1,45 @@
+# server/app/core/config.py
+
 import os
+import sys
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://localhost/notamed")
-    
-    # AI
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "groq")
-    
-    # Security
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "change-this-in-production")
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # CORS
-    CORS_ORIGINS: Optional[str] = os.getenv("CORS_ORIGINS", "")
-    
-    # App
-    APP_NAME: str = "NotaMed API"
-    APP_VERSION: str = "1.0.0"
-    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
-    
+    # API
+    API_V1_STR: str = "/api/v1"
+    PROJECT_NAME: str = "NotaMed API"
+
+    # CORS - read from env, comma-separated, default to localhost
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+
+    # Groq
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "llama-3.1-70b-versatile"
+
+    # Environment
+    ENVIRONMENT: str = "development"  # or "production"
+    DEBUG: bool = True
+
     class Config:
         env_file = ".env"
-        extra = "ignore"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
 
+    def validate(self) -> "Settings":
+        """Verify required environment variables and log warnings."""
+        if not self.GROQ_API_KEY:
+            print(
+                "⚠️  WARNING: GROQ_API_KEY is not set in environment variables!",
+                file=sys.stderr,
+            )
+            print("   Please set GROQ_API_KEY in .env or in your deployment platform.", file=sys.stderr)
+            # In production, we might want to raise an error:
+            # if self.ENVIRONMENT == "production":
+            #     raise ValueError("GROQ_API_KEY is required in production")
+        return self
+
+
+# Singleton instance
 settings = Settings()
+settings.validate()
