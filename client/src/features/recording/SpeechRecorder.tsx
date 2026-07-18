@@ -16,9 +16,8 @@ export const SpeechRecorder: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimeoutRef = useRef<number | null>(null); // <-- changed from NodeJS.Timeout
 
-  // Initialize Speech Recognition if available
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -33,7 +32,7 @@ export const SpeechRecorder: React.FC = () => {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => { // <-- added type
       let final = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -44,22 +43,19 @@ export const SpeechRecorder: React.FC = () => {
           interim += transcriptPart;
         }
       }
-      // Update transcript with both final and interim
       setTranscript((prev) => (prev ? prev + ' ' + final : final) + ' ' + interim);
 
-      // Reset silence timer on any speech
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = null;
       }
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => { // <-- added type
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setError('Microphone access denied. Please allow microphone access and try again.');
       } else if (event.error === 'no-speech') {
-        // Restart if no speech detected
         if (isListening) {
           recognition.stop();
           setTimeout(() => recognition.start(), 100);
@@ -90,8 +86,7 @@ export const SpeechRecorder: React.FC = () => {
       recognitionRef.current.start();
       setIsListening(true);
       setError(null);
-      // Auto-stop after 3 seconds of silence
-      silenceTimeoutRef.current = setTimeout(() => {
+      silenceTimeoutRef.current = window.setTimeout(() => {
         stopListening();
       }, 3000);
     } catch (err) {
@@ -119,7 +114,6 @@ export const SpeechRecorder: React.FC = () => {
     setSoapNote(null);
   };
 
-  // Health check before processing
   const checkBackendHealth = async (): Promise<boolean> => {
     try {
       const response = await apiClient.get('/health');
@@ -134,7 +128,6 @@ export const SpeechRecorder: React.FC = () => {
     setIsProcessing(true);
     setError(null);
 
-    // Verify backend is reachable
     const isHealthy = await checkBackendHealth();
     if (!isHealthy) {
       setError(
@@ -212,18 +205,10 @@ export const SpeechRecorder: React.FC = () => {
         <div style={{ marginTop: '1.5rem' }}>
           <h3>SOAP Note</h3>
           <div style={{ border: '1px solid #ccc', padding: '1rem', background: '#f0f8ff' }}>
-            <p>
-              <strong>Subjective:</strong> {soapNote.subjective}
-            </p>
-            <p>
-              <strong>Objective:</strong> {soapNote.objective}
-            </p>
-            <p>
-              <strong>Assessment:</strong> {soapNote.assessment}
-            </p>
-            <p>
-              <strong>Plan:</strong> {soapNote.plan}
-            </p>
+            <p><strong>Subjective:</strong> {soapNote.subjective}</p>
+            <p><strong>Objective:</strong> {soapNote.objective}</p>
+            <p><strong>Assessment:</strong> {soapNote.assessment}</p>
+            <p><strong>Plan:</strong> {soapNote.plan}</p>
           </div>
         </div>
       )}
