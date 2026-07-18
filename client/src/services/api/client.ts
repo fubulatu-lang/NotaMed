@@ -1,91 +1,65 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import type { ApiError } from '../../types';
+// client/src/services/api/client.ts
+
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+// Build base URL from environment, with a fallback to relative path.
+// In Vite, import.meta.env.VITE_API_URL is available.
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiClient {
   private client: AxiosInstance;
 
-  // Use environment variable for base URL with a sensible default
-constructor() {
-  const BASE_URL = import.meta.env.VITE_API_URL || 'https://your-deployed-backend.com/api/v1';
-  this.client = axios.create({
-    baseURL: BASE_URL,
-    // ... rest unchanged
-  });
-}
-    
+  constructor() {
     this.client = axios.create({
       baseURL: BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000,
+      timeout: 30000, // 30 seconds
     });
 
+    // Request interceptor to add auth token if needed
     this.client.interceptors.request.use(
-      (config) => {
-        const tokens = localStorage.getItem('auth_tokens');
-        if (tokens) {
-          try {
-            const { accessToken } = JSON.parse(tokens);
-            config.headers.Authorization = `Bearer ${accessToken}`;
-          } catch (e) {}
-        }
+      (config: InternalAxiosRequestConfig) => {
+        // You can add an auth token here if required
+        // const token = localStorage.getItem('authToken');
+        // if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
       },
       (error) => Promise.reject(error)
     );
 
+    // Response interceptor for global error handling
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => response.data,
       (error: AxiosError) => {
-        const apiError: ApiError = {
-          message: 'An unexpected error occurred',
-          status: error.response?.status || 500,
-          details: error.response?.data,
-        };
-
-        if (error.response?.status === 401) {
-          localStorage.removeItem('auth_tokens');
-          window.location.href = '/login';
-        }
-
-        return Promise.reject(apiError);
+        // Log error or show global toast
+        console.error('API Error:', error.response?.data || error.message);
+        return Promise.reject(error);
       }
     );
   }
 
-  async get<T>(url: string, params?: any): Promise<T> {
-    const response = await this.client.get<T>(url, { params });
-    return response.data;
+  // Expose HTTP methods
+  async get<T = any>(url: string, config = {}): Promise<T> {
+    return this.client.get(url, config);
   }
 
-  async post<T>(url: string, data?: any): Promise<T> {
-    const response = await this.client.post<T>(url, data);
-    return response.data;
+  async post<T = any>(url: string, data = {}, config = {}): Promise<T> {
+    return this.client.post(url, data, config);
   }
 
-  async put<T>(url: string, data?: any): Promise<T> {
-    const response = await this.client.put<T>(url, data);
-    return response.data;
+  async put<T = any>(url: string, data = {}, config = {}): Promise<T> {
+    return this.client.put(url, data, config);
   }
 
-  async delete<T>(url: string): Promise<T> {
-    const response = await this.client.delete<T>(url);
-    return response.data;
+  async delete<T = any>(url: string, config = {}): Promise<T> {
+    return this.client.delete(url, config);
   }
 
-  async uploadFile<T>(url: string, file: File | Blob, fieldName = 'audio_file'): Promise<T> {
-    const formData = new FormData();
-    formData.append(fieldName, file);
-    
-    const response = await this.client.post<T>(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 60000,
-    });
-    
-    return response.data;
+  // For direct axios instance access (if needed)
+  getAxiosInstance(): AxiosInstance {
+    return this.client;
   }
 }
 
