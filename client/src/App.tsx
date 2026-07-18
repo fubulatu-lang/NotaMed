@@ -1,7 +1,6 @@
 // client/src/App.tsx
 
-import React from 'react';
-import { RecordingPage } from './features/recording/RecordingPage'; // <-- named import
+import { RecordingPage } from './features/recording/RecordingPage';
 
 function App() {
   return (
