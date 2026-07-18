@@ -2,8 +2,6 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// Build base URL from environment, with a fallback to relative path.
-// In Vite, import.meta.env.VITE_API_URL is available.
 const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiClient {
@@ -15,13 +13,12 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000, // 30 seconds
+      timeout: 30000,
     });
 
-    // Request interceptor to add auth token if needed
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        // You can add an auth token here if required
+        // Add auth token if needed
         // const token = localStorage.getItem('authToken');
         // if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
@@ -29,18 +26,15 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor for global error handling
     this.client.interceptors.response.use(
       (response) => response.data,
       (error: AxiosError) => {
-        // Log error or show global toast
         console.error('API Error:', error.response?.data || error.message);
         return Promise.reject(error);
       }
     );
   }
 
-  // Expose HTTP methods
   async get<T = any>(url: string, config = {}): Promise<T> {
     return this.client.get(url, config);
   }
@@ -57,7 +51,24 @@ class ApiClient {
     return this.client.delete(url, config);
   }
 
-  // For direct axios instance access (if needed)
+  // New method for file uploads
+  async uploadFile<T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<T> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.client.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
+      },
+    });
+  }
+
   getAxiosInstance(): AxiosInstance {
     return this.client;
   }
