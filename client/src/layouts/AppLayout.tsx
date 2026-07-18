@@ -15,6 +15,7 @@ const AppLayout = () => {
       }}>
         <Link to="/" style={{ textDecoration: 'none', color: '#333' }}>🏠 Home</Link>
         <Link to="/record" style={{ textDecoration: 'none', color: '#333' }}>🎤 Record</Link>
+        <Link to="/settings" style={{ textDecoration: 'none', color: '#333' }}>⚙️ Settings</Link>
       </nav>
     </div>
   );
