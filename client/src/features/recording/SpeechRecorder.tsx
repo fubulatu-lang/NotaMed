@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { apiClient } from '../../services/api/client';
+
 
 declare global {
   interface Window {
@@ -14,7 +16,25 @@ const SpeechRecorder = () => {
   const [soapNote, setSoapNote] = useState<any>(null);
   const recognitionRef = useRef<any>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://notamed-api.up.railway.app/api/v1';
+  // Remove the API_URL constant and use apiClient instead
+const handleProcess = async () => {
+  if (!transcript.trim()) return;
+  setIsProcessing(true);
+  try {
+    // Use apiClient instead of fetch
+    const data = await apiClient.post('/formatting/note', {
+      transcript,
+      template: 'SOAP'
+    });
+    setSoapNote(data.formatted_note);
+  } catch (err) {
+    console.error('Formatting failed:', err);
+    alert('Failed to format note. Please try again.');
+  } finally {
+    setIsProcessing(false);
+  }
+};
+  
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
