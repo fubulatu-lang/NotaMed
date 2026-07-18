@@ -129,8 +129,20 @@ export const SpeechRecorder: React.FC = () => {
     alert('Please speak something first.');
     return;
   }
-  // ... rest of the function
+  setIsProcessing(true);
+  const payload = { transcript, template: 'SOAP' };
+  console.log('Sending payload:', payload); // <-- ADD THIS
+  try {
+    const res = await fetch(`${API_URL}/formatting/note`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    // ...
+  }
 };
+
+  
     const isHealthy = await checkBackendHealth();
     if (!isHealthy) {
       setError(
