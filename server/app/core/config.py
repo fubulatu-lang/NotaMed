@@ -1,9 +1,8 @@
 # server/app/core/config.py
 
-import os
 import sys
-from typing import List, Optional
-from pydantic_settings import BaseSettings
+from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # API
@@ -18,27 +17,21 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.1-70b-versatile"
 
     # Environment
-    ENVIRONMENT: str = "development"  # or "production"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    # Allow extra environment variables (like HOST, PORT, DATABASE_URL) to be ignored
+    model_config = SettingsConfigDict(extra='ignore', env_file='.env', env_file_encoding='utf-8')
 
     def validate(self) -> "Settings":
-        """Verify required environment variables and log warnings."""
+        """Log a warning if GROQ_API_KEY is missing."""
         if not self.GROQ_API_KEY:
             print(
                 "⚠️  WARNING: GROQ_API_KEY is not set in environment variables!",
                 file=sys.stderr,
             )
             print("   Please set GROQ_API_KEY in .env or in your deployment platform.", file=sys.stderr)
-            # In production, we might want to raise an error:
-            # if self.ENVIRONMENT == "production":
-            #     raise ValueError("GROQ_API_KEY is required in production")
         return self
-
 
 # Singleton instance
 settings = Settings()
