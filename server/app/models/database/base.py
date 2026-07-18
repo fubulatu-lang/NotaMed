@@ -1,58 +1,24 @@
-"""
-Database Base Configuration - PostgreSQL on Neon.tech
-"""
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
+# server/app/models/database/base.py
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import declarative_base, sessionmaker
-from app.core.config import settings
-from app.models.database.note import Note  # noqa
-
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+# SQLAlchemy Base for all models
 Base = declarative_base()
 
+# Database configuration – uncomment and adjust as needed
+# engine = create_engine(settings.DATABASE_URL)
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Use DATABASE_URL from environment
-DATABASE_URL = settings.DATABASE_URL
+# Dependency to get DB session
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
-# Create async engine for PostgreSQL
-async_engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,
-)
-
-# Async session factory
-AsyncSessionLocal = async_sessionmaker(
-    async_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-
-class Base(DeclarativeBase):
-    """Base class for all database models"""
-    pass
-
-
-async def init_db():
-    """Initialize database tables"""
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
-async def get_db() -> AsyncSession:
-    """Dependency to get database session"""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+# REMOVED the import of Note to break circular dependency.
+# Models are now imported via the database package __init__.py
