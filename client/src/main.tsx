@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -26,12 +25,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Toaster
           position="top-center"
           toastOptions={{
-            duration: 3000,
+            duration: 4000,
             style: {
-              background: '#1A1C1B',
-              color: '#F5FAF8',
-              borderRadius: '12px',
-              padding: '12px 16px',
+              background: '#363636',
+              color: '#fff',
             },
           }}
         />
