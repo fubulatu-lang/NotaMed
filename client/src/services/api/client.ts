@@ -17,12 +17,7 @@ class ApiClient {
     });
 
     this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        // Add auth token if needed
-        // const token = localStorage.getItem('authToken');
-        // if (token) config.headers.Authorization = `Bearer ${token}`;
-        return config;
-      },
+      (config: InternalAxiosRequestConfig) => config,
       (error) => Promise.reject(error)
     );
 
@@ -51,7 +46,6 @@ class ApiClient {
     return this.client.delete(url, config);
   }
 
-  // New method for file uploads
   async uploadFile<T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<T> {
     const formData = new FormData();
     formData.append('file', file);
