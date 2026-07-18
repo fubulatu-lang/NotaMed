@@ -4,8 +4,14 @@ import type { ApiError } from '../../types';
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor() {
-    const BASE_URL = 'https://notamed-api.up.railway.app/api/v1';
+  // Use environment variable for base URL with a sensible default
+constructor() {
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://your-deployed-backend.com/api/v1';
+  this.client = axios.create({
+    baseURL: BASE_URL,
+    // ... rest unchanged
+  });
+}
     
     this.client = axios.create({
       baseURL: BASE_URL,
