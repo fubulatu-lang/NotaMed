@@ -1,7 +1,7 @@
 // client/src/features/recording/RecordingPage.tsx
 
 import React from 'react';
-import { SpeechRecorder } from './SpeechRecorder'; // <-- named import
+import { SpeechRecorder } from './SpeechRecorder';
 
 export const RecordingPage: React.FC = () => {
   return (
