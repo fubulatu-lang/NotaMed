@@ -6,7 +6,7 @@ from app.api.v1.endpoints import formatting, health
 from app.core.config import settings
 
 # Import database models to register them with SQLAlchemy
-import app.models.database  # <-- Ensures all models are loaded
+import app.models.database
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
