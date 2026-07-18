@@ -1,12 +1,13 @@
-import SpeechRecorder from './SpeechRecorder';
+// client/src/features/recording/RecordingPage.tsx
 
-const RecordingPage = () => {
+import React from 'react';
+import { SpeechRecorder } from './SpeechRecorder'; // <-- named import
+
+export const RecordingPage: React.FC = () => {
   return (
-    <div className="recording-page">
-      <h1>Clinical Dictation</h1>
+    <div>
+      <h1>NotaMed Recording</h1>
       <SpeechRecorder />
     </div>
   );
 };
-
-export default RecordingPage;
