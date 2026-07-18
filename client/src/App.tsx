@@ -1,20 +1,13 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import AppLayout from './layouts/AppLayout';
-import DashboardPage from './features/dashboard/DashboardPage';
-import RecordingPage from './features/recording/RecordingPage';
-import SettingsPage from './features/settings/SettingsPage';
+// client/src/App.tsx
+
+import React from 'react';
+import { RecordingPage } from './features/recording/RecordingPage'; // <-- named import
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="record" element={<RecordingPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <div className="App">
+      <RecordingPage />
+    </div>
   );
 }
 
